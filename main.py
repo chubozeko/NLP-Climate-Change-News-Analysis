@@ -1,15 +1,13 @@
-
-
 # 1. Identify a hot topic in climate change
 #   a. carbon emission; climate crisis
 #   b. mentioned in presentation
 
 # 2. Use a Newspaper API to retrieve 20 search outcomes
-# TODO: retrieve 20 search results using an API request
-# TODO: parse <body> data from JSON response
-# TODO: store each of the results in /documents/news-articles/ as .txt files
-# TODO: retrieve the html of each page and "scrape" the comment section text
-# TODO: store (at least) 5 comments of the results in /documents/comments/ as .txt files
+# - retrieve 20 search results using an API request
+# - parse <body> data from JSON response
+# - store each of the results in /documents/news-articles/ as .txt files
+# - retrieve the html of each page and "scrape" the comment section text
+# - store (at least) 5 comments of the results in /documents/comments/ as .txt files
 # - Total generated docs = 20 + (20 * 5) = 120 docs
 
 # 3. Check the overlapping extent (similarities) between news_article_doc and comments_doc
@@ -19,6 +17,8 @@
 # TODO: * preprocessing => tokenization
 # TODO: generate a histogram of the most frequent words (excluding stopwords) of each news_article_doc & their comments_doc
 # TODO: calculate the Jacquard index between news_article_doc and comments_doc
+
+### <-- COMPLETE BY FRIDAY, 04/11/2022 12:00 --> ###
 
 # 4. Identify the topics of the news_article_doc and its comments_doc using the LDA model
 #  - LDA model: 3 topics, 5 words per topic
@@ -43,6 +43,88 @@
 # TODO: count the occurrences of all disagreement-related words in all the comments_docs of a news_article_doc [cnt_dis]
 # TODO: generate a histogram of the cnt_agr & cnt_dis
 
+### <-- COMPLETE BY FRIDAY, 04/11/2022 18:00 --> ###
+
 # 8. Create a GUI to demonstrate tasks 3-7 (maybe 2)
 # TODO: design GUI with Figma
 # TODO: export Figma GUI with Tkinter*
+
+### <-- COMPLETE ON FRIDAY, 04/11/2022 --> ###
+
+import nltk
+import string
+import requests
+import json
+from nltk import word_tokenize
+from urllib import request
+from newsapi import NewsApiClient
+from bs4 import BeautifulSoup
+from nltk.stem import WordNetLemmatizer
+from nltk.stem.snowball import SnowballStemmer
+from nltk.tokenize import sent_tokenize, word_tokenize
+
+# 2.1. retrieve 20 search results using an API request
+def retrieve_search_results(keyword: string, search_cnt: int = 20):
+    # Using The Guardian API
+    url = 'https://content.guardianapis.com/search'
+    params = {
+        'api-key': 'test',
+        'q': keyword,
+        'page-size': search_cnt,
+        'section': 'commentisfree',
+        'format': 'json',
+        'from-date': '2022-08-01',
+        'show-fields': 'headline,short-url,body',
+        'order-by': 'relevance'
+    }
+    api_result = requests.get(url, params)
+    json_str = json.dumps(api_result.json())
+    return json.loads(json_str)["response"]["results"]
+
+# 2.2. parse <body> data from JSON response
+# 2.3. store each of the results in /documents/news-articles/ as .txt files
+def parse_news_articles(news_articles: string):
+    count_articles = 0
+    articles_w_comments = []
+    # parse the search results to extract the text in their <body>
+    for i in range(0, len(news_articles), 1):
+        body = news_articles[i]["fields"]["body"]
+        raw_news_text = BeautifulSoup(body, 'html.parser').get_text()
+        # Check if article has comments
+        root_url = "http://discussion.theguardian.com/discussion-api/discussion"
+        comm = news_articles[i]["fields"]["shortUrl"].replace("https://www.theguardian.com", "/")
+        comment_url = root_url + comm + "/topcomments?orderBy=newest&page=1&pageSize=5"
+        comm_results = requests.get(comment_url)
+        if count_articles <= 20:
+            # Save articles that contain comments
+            if comm_results.json()["status"] == 'ok':
+                file_name = 'news_' + str(count_articles) + '.txt'
+                with open("documents/news-articles/" + file_name, "w+") as output_file:
+                    output_file.write(raw_news_text)
+                count_articles = count_articles + 1
+                articles_w_comments.append(news_articles[i])
+        else:
+            break
+    return articles_w_comments
+
+def get_comments_from_articles(news_articles: string):
+    ## API request for comments:
+    # - http://discussion.theguardian.com/discussion-api/discussion//p/mek3c?orderBy=oldest&page=1&pageSize=5
+    root_url = "http://discussion.theguardian.com/discussion-api/discussion"
+    for i in range(0, len(news_articles), 1):
+        comm = news_articles[i]["fields"]["shortUrl"].replace("https://www.theguardian.com", "/")
+        comment_url = root_url + comm + "/topcomments?orderBy=newest&page=1&pageSize=5"
+        comm_results = requests.get(comment_url)
+        json_str = json.dumps(comm_results.json())
+        comments = json.loads(json_str)["discussion"]["comments"]
+        for j in range(0, len(comments), 1):
+            comment = comments[j]["body"]
+            raw_comment_text = BeautifulSoup(comment, 'html.parser').get_text()
+            file_name = 'news_' + str(i) + '_comment_' + str(j) + '.txt'
+            with open("documents/comments/" + file_name, "w+") as output_file:
+                output_file.write(raw_comment_text)
+
+## Project tasks ##
+results = retrieve_search_results('carbon emissions', 40)
+news_articles_w_comments = parse_news_articles(results)
+get_comments_from_articles(news_articles_w_comments)
