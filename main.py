@@ -34,13 +34,11 @@
 # - generate a histogram of these entities (across all the comments_docs of a news_article_doc)
 
 # 7. Investigate the behaviour of user comments (across all the comments_docs of a news_article_doc)
-# TODO: create a list of agreement words [list_agree]
-# TODO: create a list of disagreement words [list_disagree]
-# TODO: count the occurrences of all agreement-related words in all the comments_docs of a news_article_doc [cnt_agr]
-# TODO: count the occurrences of all disagreement-related words in all the comments_docs of a news_article_doc [cnt_dis]
-# TODO: generate a histogram of the cnt_agr & cnt_dis
-
-### <-- COMPLETE BY MONDAY, 07/11/2022 23:59 --> ###
+# - create a list of agreement words [list_agree]
+# - create a list of disagreement words [list_disagree]
+# - count the occurrences of all agreement-related words in all the comments_docs of a news_article_doc [cnt_agr]
+# - count the occurrences of all disagreement-related words in all the comments_docs of a news_article_doc [cnt_dis]
+# - generate a histogram of the cnt_agr & cnt_dis
 
 # 8. Create a GUI to demonstrate tasks 3-7 (maybe 2)
 # TODO: design GUI with Figma
@@ -72,6 +70,8 @@ import pyLDAvis
 from textblob import TextBlob
 from textblob.sentiments import NaiveBayesAnalyzer
 from empath import Empath
+from nltk.corpus import wordnet as wn
+from nltk.corpus import sentiwordnet as swn
 
 # 2.1. retrieve 20 search results using an API request
 def retrieve_search_results(keyword: string, search_cnt: int = 20):
@@ -344,13 +344,72 @@ def view_user_agreement_extent(start_doc_index: int, end_doc_index: int):
             continue
         print('---------------------------------------------------------------------------')
 
+# - create a list of agreement words [list_agree]
+def get_agreement_words():
+    list_agree = []
+    agreement_seeds = ['agree', 'agreement', 'yes', 'sure', 'right']
+    for i in range(0, len(agreement_seeds), 1):
+        for synset in wn.synsets(agreement_seeds[i]):
+            for lem in synset.lemmas():
+                if lem.name() not in list_agree:
+                    list_agree.append(lem.name())
+    return list_agree
+
+# - create a list of disagreement words [list_disagree]
+def get_disagreement_words():
+    list_disagree = []
+    disagreement_seeds = ['disagree', 'disagreement', 'no', 'unsure', 'wrong']
+    for i in range(0, len(disagreement_seeds), 1):
+        for synset in wn.synsets(disagreement_seeds[i]):
+            for lem in synset.lemmas():
+                if lem.name() not in list_disagree:
+                    list_disagree.append(lem.name())
+    return list_disagree
+
+# - count the occurrences of all agreement-related words in all the comments_docs of a news_article_doc [cnt_agr]
+def get_agreement_word_count(doc):
+    cnt_agr = 0
+    tokens = word_tokenize(doc)
+    list_agree = get_agreement_words()
+    for i in range(0, len(tokens), 1):
+        if tokens[i] in list_agree:
+            cnt_agr = cnt_agr + 1
+    return cnt_agr
+
+# - count the occurrences of all disagreement-related words in all the comments_docs of a news_article_doc [cnt_dis]
+def get_disagreement_word_count(doc):
+    cnt_dis = 0
+    tokens = word_tokenize(doc)
+    list_disagree = get_disagreement_words()
+    for i in range(0, len(tokens), 1):
+        if tokens[i] in list_disagree:
+            cnt_dis = cnt_dis + 1
+    return cnt_dis
+def view_commenter_behavior(start_doc_index: int, end_doc_index: int):
+    for i in range(start_doc_index, end_doc_index, 1):
+        for j in range(0, 4, 1):
+            comm_doc_name = "news_" + str(i) + "_comment_" + str(j)
+            comm_text = load_doc_file("documents/comments/", comm_doc_name)
+            if (comm_text != None):
+                ad_word_count = []
+                ad_word_count.append(('agreement', get_agreement_word_count(comm_text),))
+                ad_word_count.append(('disagreement', get_disagreement_word_count(comm_text),))
+                plot_histogram(pandas.Series(dict(ad_word_count)), 'Number of Agreement/Disagreement Words in ' + comm_doc_name,
+                               'Word Type', 'Count')
+            else:
+                continue
+        else:
+            print('---------------------------------------------------------------------------')
+            continue
+
+
 ## Project tasks ##
-# results = retrieve_search_results('carbon emissions', 40)
-# news_articles_w_comments = parse_news_articles(results)
-# get_comments_from_articles(news_articles_w_comments)
-# view_most_frequent_terms(1, 21)
-# identify_topics_with_lda(1, 21) # SKIP: doesn't work
+results = retrieve_search_results('carbon emissions', 40)
+news_articles_w_comments = parse_news_articles(results)
+get_comments_from_articles(news_articles_w_comments)
+view_most_frequent_terms(1, 21)
 # view_sentiments(1, 21)
-view_user_disagreement_extent(20, 21)
-# view_user_agreement_extent(20, 21)
+# view_user_disagreement_extent(1, 21)
+# view_user_agreement_extent(1, 21)
+# view_commenter_behavior(1, 21)
 
