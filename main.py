@@ -29,9 +29,9 @@
 # - calculate the Pearson correlation between each senti_news_doc & their senti_comments_doc
 
 # 6. Evaluate the agreement/disagreement extent for each comments_doc
-# TODO: get a list of Negative Emotion Wordings from any corpus (e.g. Empath)
-# TODO: identify the entity that the Negative Sentiment Word (if any) is associated to, using a Parser Tree
-# TODO: generate a histogram of these entities (across all the comments_docs of a news_article_doc)
+# - get a list of Negative Emotion Wordings from any corpus (e.g. Empath)
+# - identify the entity that the Negative Sentiment Word (if any) is associated to, using a Parser Tree
+# - generate a histogram of these entities (across all the comments_docs of a news_article_doc)
 
 # 7. Investigate the behaviour of user comments (across all the comments_docs of a news_article_doc)
 # TODO: create a list of agreement words [list_agree]
@@ -40,7 +40,7 @@
 # TODO: count the occurrences of all disagreement-related words in all the comments_docs of a news_article_doc [cnt_dis]
 # TODO: generate a histogram of the cnt_agr & cnt_dis
 
-### <-- COMPLETE BY MONDAY, 07/11/2022 11:59 --> ###
+### <-- COMPLETE BY MONDAY, 07/11/2022 23:59 --> ###
 
 # 8. Create a GUI to demonstrate tasks 3-7 (maybe 2)
 # TODO: design GUI with Figma
@@ -70,7 +70,8 @@ import pyLDAvis
 # from sentistrength import PySentiStr
 # import pyLDAvis.gensim
 from textblob import TextBlob
-from textblob.sentiments import PatternAnalyzer, NaiveBayesAnalyzer
+from textblob.sentiments import NaiveBayesAnalyzer
+from empath import Empath
 
 # 2.1. retrieve 20 search results using an API request
 def retrieve_search_results(keyword: string, search_cnt: int = 20):
@@ -244,6 +245,10 @@ def get_sentiment_of_doc(doc: string):
     else:
         senti_class = 'Neutral'
     return senti_vec, senti_class
+
+def pearson_correlation(x, y):
+    return pearsonr(x, y).statistic
+
 def view_sentiments(start_doc_index: int, end_doc_index: int):
     for i in range(start_doc_index, end_doc_index, 1):
         news_doc_name = "news_" + str(i)
@@ -270,13 +275,82 @@ def view_sentiments(start_doc_index: int, end_doc_index: int):
             continue
         print('---------------------------------------------------------------------------')
 
-def pearson_correlation(x, y):
-    return pearsonr(x, y).statistic
+
+def find_negative_emotions(doc, doc_name):
+    negative_words = []
+    lexicon = Empath()
+    # identify the sentence that the Negative Emotion is associated with
+    sent_tokens = sent_tokenize(doc)
+    for i in range(0, len(sent_tokens), 1):
+        # get a list of Negative Emotion wordings from Empath
+        sent_emotion = lexicon.analyze(sent_tokens[i], categories=["negative_emotion"], normalize=True)
+        if (sent_emotion["negative_emotion"] != 0.0):
+            # identify the entities that the Negative Emotion is associated with
+            word_tokens = word_tokenize(sent_tokens[i])
+            for j in range(0, len(word_tokens), 1):
+                # get a list of Negative Emotion wordings from Empath
+                word_emotion = lexicon.analyze(word_tokens[j], categories=["negative_emotion"], normalize=True)
+                if (word_emotion["negative_emotion"] != 0.0):
+                    negative_words.append((word_tokens[j], sent_emotion["negative_emotion"],))
+    if (len(negative_words) != 0):
+        # draw a histogram of these negative entities and their influence on their sentences
+        plot_histogram(pandas.Series(dict(negative_words)), 'Negative Emotion Entites from ' + doc_name, 'Entities', 'Negative sentiment value on sentence')
+
+def view_user_disagreement_extent(start_doc_index: int, end_doc_index: int):
+    for i in range(start_doc_index, end_doc_index, 1):
+        for j in range(0, 4, 1):
+            comm_doc_name = "news_" + str(i) + "_comment_" + str(j)
+            comm_text = load_doc_file("documents/comments/", comm_doc_name)
+            if (comm_text != None):
+                # find the negative emotion entities from comment doc (if any)
+                find_negative_emotions(comm_text, comm_doc_name)
+            else:
+                continue
+        else:
+            continue
+        print('---------------------------------------------------------------------------')
+
+def find_positive_emotions(doc, doc_name):
+    positive_words = []
+    lexicon = Empath()
+    # identify the sentence that the Positive Emotion is associated with
+    sent_tokens = sent_tokenize(doc)
+    for i in range(0, len(sent_tokens), 1):
+        # get a list of Positive Emotion wordings from Empath
+        sent_emotion = lexicon.analyze(sent_tokens[i], categories=["positive_emotion"], normalize=True)
+        if (sent_emotion["positive_emotion"] != 0.0):
+            # identify the entities that the Positive Emotion is associated with
+            word_tokens = word_tokenize(sent_tokens[i])
+            for j in range(0, len(word_tokens), 1):
+                # get a list of Positive Emotion wordings from Empath
+                word_emotion = lexicon.analyze(word_tokens[j], categories=["positive_emotion"], normalize=True)
+                if (word_emotion["positive_emotion"] != 0.0):
+                    positive_words.append((word_tokens[j], sent_emotion["positive_emotion"],))
+    if (len(positive_words) != 0):
+        # draw a histogram of these negative entities and their influence on their sentences
+        plot_histogram(pandas.Series(dict(positive_words)), 'Positive Emotion Entites from ' + doc_name, 'Entities', 'Positive sentiment value on sentence')
+
+def view_user_agreement_extent(start_doc_index: int, end_doc_index: int):
+    for i in range(start_doc_index, end_doc_index, 1):
+        for j in range(0, 4, 1):
+            comm_doc_name = "news_" + str(i) + "_comment_" + str(j)
+            comm_text = load_doc_file("documents/comments/", comm_doc_name)
+            if (comm_text != None):
+                # find the positive emotion entities from comment doc (if any)
+                find_positive_emotions(comm_text, comm_doc_name)
+            else:
+                continue
+        else:
+            continue
+        print('---------------------------------------------------------------------------')
 
 ## Project tasks ##
 # results = retrieve_search_results('carbon emissions', 40)
 # news_articles_w_comments = parse_news_articles(results)
 # get_comments_from_articles(news_articles_w_comments)
 # view_most_frequent_terms(1, 21)
-# identify_topics_with_lda(1, 21)
-view_sentiments(1, 21)
+# identify_topics_with_lda(1, 21) # SKIP: doesn't work
+# view_sentiments(1, 21)
+view_user_disagreement_extent(20, 21)
+# view_user_agreement_extent(20, 21)
+
