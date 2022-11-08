@@ -8,7 +8,7 @@
 # - store each of the results in /documents/news-articles/ as .txt files
 # - retrieve the html of each page and "scrape" the comment section text
 # - store (at least) 5 comments of the results in /documents/comments/ as .txt files
-# - Total generated docs = 20 + (20 * 5) = 120 docs
+# - Total generated docs (estimate) = 20 + (20 * 5) = 120 docs
 
 # 3. Check the overlapping extent (similarities) between news_article_doc and comments_doc
 # - preprocessing => tokenization
@@ -74,13 +74,13 @@ from nltk.corpus import wordnet as wn
 from nltk.corpus import sentiwordnet as swn
 
 # 2.1. retrieve 20 search results using an API request
-def retrieve_search_results(keyword: string, search_cnt: int = 20):
+def retrieve_search_results(keyword: string, nr_of_outcomes: int = 20):
     # Using The Guardian API
     url = 'https://content.guardianapis.com/search'
     params = {
         'api-key': 'test',
         'q': keyword,
-        'page-size': search_cnt,
+        'page-size': nr_of_outcomes,
         'section': 'commentisfree',
         'format': 'json',
         'from-date': '2022-08-01',
@@ -404,12 +404,21 @@ def view_commenter_behavior(start_doc_index: int, end_doc_index: int):
 
 
 ## Project tasks ##
-results = retrieve_search_results('carbon emissions', 40)
+# T1. Identify a Climate Change topic
+keyword = 'carbon emissions'
+# T2. Retrieve 20 search results using the keyword
+results = retrieve_search_results(keyword, 40)
+# T3.1. Parse the results and save them as News Article & Comment text documents
 news_articles_w_comments = parse_news_articles(results)
 get_comments_from_articles(news_articles_w_comments)
-view_most_frequent_terms(1, 21)
+# T3.2. View the Historgram & Jaccard Index of the Most Frequent Words in each document
+# view_most_frequent_terms(1, 21)
+# T5. View the Sentiment Values for each news article & their comments
 # view_sentiments(1, 21)
+# T6.1. View the Histogram of the negative entities found in each document, and their influence on their sentences
 # view_user_disagreement_extent(1, 21)
+# T6.2. View the Histogram of the positive entities found in each document, and their influence on their sentences
 # view_user_agreement_extent(1, 21)
+# T7. View the Histogram of the number of Agreement & Disagreement words in each document
 # view_commenter_behavior(1, 21)
 
